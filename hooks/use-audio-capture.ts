@@ -45,7 +45,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       processor.onaudioprocess = (e) => {
         const float32 = e.inputBuffer.getChannelData(0);
         const int16 = float32ToInt16(float32);
-        onChunk(int16.buffer);
+        onChunk(int16.buffer as ArrayBuffer);
       };
 
       source.connect(processor);

@@ -35,7 +35,7 @@ export function createCartesiaManager(
           for (let i = 0; i < binaryStr.length; i++) {
             bytes[i] = binaryStr.charCodeAt(i);
           }
-          const float32 = new Float32Array(bytes.buffer);
+          const float32 = new Float32Array(bytes.buffer as ArrayBuffer);
           onAudioChunk(float32);
         } else if (data.type === "done") {
           onDone();
