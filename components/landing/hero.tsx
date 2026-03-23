@@ -49,7 +49,7 @@ export function Hero() {
         {/* Spline 3D scene — shifted LEFT */}
         <div
           className="absolute inset-0 z-[1]"
-          style={{ left: "8%", transform: "scale(0.82)", transformOrigin: "center center" }}
+          style={{ left: "12%", transform: "scale(0.82)", transformOrigin: "center center" }}
         >
           <SplineScene
             scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
@@ -64,31 +64,32 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            {/* Line 1: Your [Personal with arrow] AI Voice */}
+            {/* Line 1: Your Personal AI */}
+            {/* Line 2: Voice Assistant */}
             <h1 className="text-4xl font-bold md:text-6xl lg:text-7xl leading-tight">
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
                 Your{" "}
               </span>
 
-              {/* Inline "Personal" — handwritten style, no arrow */}
+              {/* "Personal" — handwritten style */}
               <motion.span
                 initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
                 animate={{ opacity: 1, scale: 1, rotate: -2 }}
                 transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
-                className="inline-block bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent text-4xl md:text-6xl lg:text-7xl px-1"
-                style={{ fontFamily: "var(--font-caveat), cursive" }}
+                className="inline-block bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent text-4xl md:text-6xl lg:text-7xl px-2"
+                style={{ fontFamily: "var(--font-caveat), cursive", letterSpacing: "0.02em" }}
               >
                 Personal
               </motion.span>
 
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
-                {" "}AI Voice
+                {" "}AI
               </span>
 
-              {/* Line 2: Assistant */}
+              {/* Line 2: Voice Assistant */}
               <br />
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
-                Assistant
+                Voice Assistant
               </span>
             </h1>
           </motion.div>
@@ -112,19 +113,19 @@ export function Hero() {
           >
             <div
               className="group relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105 hover:shadow-[0_0_60px_rgba(177,158,239,0.2)]"
-              style={{ width: 220, height: 64 }}
+              style={{ width: 240, height: 68 }}
               onClick={handleGetStarted}
             >
-              {/* ShapeBlur fills the entire box */}
-              <div className="absolute inset-0 z-0">
+              {/* ShapeBlur covers the full boundary — oversized container to bleed to edges */}
+              <div className="absolute z-0" style={{ inset: -40 }}>
                 <Suspense fallback={null}>
                   <ShapeBlur
                     variation={0}
                     pixelRatioProp={2}
-                    shapeSize={1}
+                    shapeSize={1.5}
                     roundness={0.5}
-                    borderSize={0.05}
-                    circleSize={0.25}
+                    borderSize={0.15}
+                    circleSize={0.3}
                     circleEdge={1}
                   />
                 </Suspense>
