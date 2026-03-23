@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useMemo } from "react";
 
 interface UseAudioPlaybackReturn {
   init: () => void;
@@ -20,6 +20,8 @@ export function useAudioPlayback(
   const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const playingRef = useRef(false);
   const doneSignalRef = useRef(false);
+  const onPlaybackEndRef = useRef(onPlaybackEnd);
+  onPlaybackEndRef.current = onPlaybackEnd;
 
   const init = useCallback(() => {
     if (
@@ -37,61 +39,56 @@ export function useAudioPlayback(
       nextPlayTimeRef.current = 0;
     }
 
-    // Resume if suspended (browsers require user gesture)
     if (audioContextRef.current.state === "suspended") {
       audioContextRef.current.resume();
     }
   }, []);
 
-  const enqueue = useCallback(
-    (float32: Float32Array) => {
-      const ctx = audioContextRef.current;
-      const analyser = analyserRef.current;
-      if (!ctx || !analyser) {
-        console.warn("[AudioPlayback] No AudioContext, cannot enqueue");
-        return;
+  const enqueue = useCallback((float32: Float32Array) => {
+    const ctx = audioContextRef.current;
+    const analyser = analyserRef.current;
+    if (!ctx || !analyser) {
+      console.warn("[AudioPlayback] No AudioContext, cannot enqueue");
+      return;
+    }
+
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    playingRef.current = true;
+    doneSignalRef.current = false;
+
+    const audioBuffer = ctx.createBuffer(1, float32.length, 24000);
+    audioBuffer.getChannelData(0).set(float32);
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(analyser);
+
+    const now = ctx.currentTime;
+    const startTime = Math.max(nextPlayTimeRef.current, now);
+    source.start(startTime);
+    nextPlayTimeRef.current = startTime + audioBuffer.duration;
+
+    activeSourcesRef.current.add(source);
+
+    source.onended = () => {
+      activeSourcesRef.current.delete(source);
+      if (doneSignalRef.current && activeSourcesRef.current.size === 0) {
+        playingRef.current = false;
+        onPlaybackEndRef.current?.();
       }
-
-      // Resume if suspended
-      if (ctx.state === "suspended") {
-        ctx.resume();
-      }
-
-      playingRef.current = true;
-      doneSignalRef.current = false;
-
-      const audioBuffer = ctx.createBuffer(1, float32.length, 24000);
-      audioBuffer.getChannelData(0).set(float32);
-
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(analyser);
-
-      const now = ctx.currentTime;
-      const startTime = Math.max(nextPlayTimeRef.current, now);
-      source.start(startTime);
-      nextPlayTimeRef.current = startTime + audioBuffer.duration;
-
-      activeSourcesRef.current.add(source);
-
-      source.onended = () => {
-        activeSourcesRef.current.delete(source);
-        if (doneSignalRef.current && activeSourcesRef.current.size === 0) {
-          playingRef.current = false;
-          onPlaybackEnd?.();
-        }
-      };
-    },
-    [onPlaybackEnd]
-  );
+    };
+  }, []);
 
   const flush = useCallback(() => {
     doneSignalRef.current = true;
     if (activeSourcesRef.current.size === 0) {
       playingRef.current = false;
-      onPlaybackEnd?.();
+      onPlaybackEndRef.current?.();
     }
-  }, [onPlaybackEnd]);
+  }, []);
 
   const stopPlayback = useCallback(() => {
     activeSourcesRef.current.forEach((source) => {
@@ -111,5 +108,8 @@ export function useAudioPlayback(
 
   const isPlaying = useCallback(() => playingRef.current, []);
 
-  return { init, enqueue, flush, stopPlayback, getAnalyserNode, isPlaying };
+  return useMemo(
+    () => ({ init, enqueue, flush, stopPlayback, getAnalyserNode, isPlaying }),
+    [init, enqueue, flush, stopPlayback, getAnalyserNode, isPlaying]
+  );
 }

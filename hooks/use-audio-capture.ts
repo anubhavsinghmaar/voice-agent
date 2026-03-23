@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import { float32ToInt16 } from "@/lib/deepgram";
 
 interface UseAudioCaptureReturn {
@@ -27,7 +27,6 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       });
       streamRef.current = stream;
 
-      // Use default sample rate and downsample to 16kHz manually
       const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
       const nativeSampleRate = audioContext.sampleRate;
@@ -41,14 +40,12 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       analyserRef.current = analyser;
       source.connect(analyser);
 
-      // Use smaller buffer for lower latency
       const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
         const channelData = e.inputBuffer.getChannelData(0);
 
-        // Downsample to 16kHz if needed
         let samples: Float32Array;
         if (nativeSampleRate === 16000) {
           samples = new Float32Array(channelData.length);
@@ -93,5 +90,9 @@ export function useAudioCapture(): UseAudioCaptureReturn {
 
   const getAnalyserNode = useCallback(() => analyserRef.current, []);
 
-  return { start, stop, getAnalyserNode };
+  // Return a stable reference so useEffect deps don't cause re-runs
+  return useMemo(
+    () => ({ start, stop, getAnalyserNode }),
+    [start, stop, getAnalyserNode]
+  );
 }
