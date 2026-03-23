@@ -63,8 +63,9 @@ export function WaveVisualizer({
           : null;
 
     if (analyser) {
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(dataArray);
+      const arr = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(arr);
+      dataArray = arr as unknown as Uint8Array<ArrayBuffer>;
     }
 
     const numBars = 64;
