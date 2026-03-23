@@ -181,7 +181,7 @@ export default function Aurora({
           uTime: { value: 0 },
           uAmplitude: { value: propsRef.current.amplitude },
           uColorStops: { value: colorStopsArray },
-          uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+          uResolution: { value: [ctn!.offsetWidth, ctn!.offsetHeight] },
           uBlend: { value: propsRef.current.blend },
         },
       });
