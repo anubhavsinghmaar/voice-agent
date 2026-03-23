@@ -45,8 +45,8 @@ export function Hero() {
 
         <Spotlight className="-top-40 left-0 md:-top-20 md:left-60" fill="white" />
 
-        {/* Spline 3D scene — full screen behind everything, interactive everywhere */}
-        <div className="absolute inset-0 z-[1]">
+        {/* Spline 3D scene — shifted right and slightly smaller */}
+        <div className="absolute inset-0 z-[1]" style={{ left: "10%", transform: "scale(0.85)", transformOrigin: "center center" }}>
           <SplineScene
             scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
             className="h-full w-full"
@@ -64,17 +64,58 @@ export function Hero() {
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
                 Your{" "}
               </span>
-              <span
-                className="bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent italic"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-              >
-                Personal
-              </span>
               <br />
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
                 AI Voice Assistant
               </span>
             </h1>
+
+            {/* Handwritten "Personal" annotation with arrow */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+              animate={{ opacity: 1, scale: 1, rotate: -3 }}
+              transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+              className="relative mt-2 ml-2 inline-block"
+            >
+              {/* Arrow pointing up-right toward "Your" */}
+              <svg
+                width="40"
+                height="50"
+                viewBox="0 0 40 50"
+                fill="none"
+                className="absolute -top-12 left-16"
+                style={{ transform: "rotate(10deg)" }}
+              >
+                <path
+                  d="M20 48 C18 30, 10 15, 8 5"
+                  stroke="url(#arrowGrad)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M3 12 L8 4 L14 10"
+                  stroke="url(#arrowGrad)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <defs>
+                  <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#66c4ff" />
+                    <stop offset="100%" stopColor="#B19EEF" />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              <span
+                className="bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent text-4xl md:text-5xl lg:text-6xl"
+                style={{ fontFamily: "var(--font-caveat), cursive" }}
+              >
+                Personal
+              </span>
+            </motion.div>
           </motion.div>
 
           <motion.p

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Settings, Mic, MicOff } from "lucide-react";
@@ -9,6 +9,8 @@ import { useVoiceAgent, type AgentState } from "@/hooks/use-voice-agent";
 import { WaveVisualizer } from "./wave-visualizer";
 import { ApiConfigModal } from "@/components/config/api-config-modal";
 import { hasApiKeys } from "@/lib/api-keys";
+
+const MagicRings = lazy(() => import("@/components/ui/magic-rings"));
 
 function getStatusText(state: AgentState): string {
   switch (state) {
@@ -84,11 +86,29 @@ export function VoiceAgent() {
 
       {/* Wave visualizer */}
       <div className="flex flex-1 flex-col items-center justify-center gap-4 pb-32">
-        <WaveVisualizer
-          state={state}
-          getCaptureAnalyser={getCaptureAnalyser}
-          getPlaybackAnalyser={getPlaybackAnalyser}
-        />
+        <div className="relative h-80 w-80 md:h-96 md:w-96">
+          {/* MagicRings behind wave visualizer */}
+          <Suspense fallback={null}>
+            <MagicRings
+              color="#fc42ff"
+              colorTwo="#42fcff"
+              ringCount={6}
+              rotationSpeed={1.0}
+              lineThickness={0.005}
+              glowIntensity={1.0}
+              pulseSpeed={1.0}
+              className="pointer-events-none"
+            />
+          </Suspense>
+          {/* Wave visualizer on top */}
+          <div className="absolute inset-0 z-[1]">
+            <WaveVisualizer
+              state={state}
+              getCaptureAnalyser={getCaptureAnalyser}
+              getPlaybackAnalyser={getPlaybackAnalyser}
+            />
+          </div>
+        </div>
 
         {/* Transcript / Agent text */}
         <div className="h-12 max-w-md px-4 text-center">
