@@ -127,9 +127,7 @@ export function useVoiceAgent() {
         }
       );
 
-      deepgramRef.current.connect();
-      // Small delay for WebSocket to connect
-      await new Promise((r) => setTimeout(r, 300));
+      await deepgramRef.current.connect();
 
       await audioCapture.start((pcm16) => {
         deepgramRef.current?.sendAudio(pcm16);

@@ -5,7 +5,7 @@ export type DeepgramEvent =
   | { type: "TurnInfo"; event: "EagerEndOfTurn"; transcript: string };
 
 export interface DeepgramManager {
-  connect: () => void;
+  connect: () => Promise<void>;
   sendAudio: (data: ArrayBuffer) => void;
   close: () => void;
   isConnected: () => boolean;
@@ -19,37 +19,41 @@ export function createDeepgramManager(
 ): DeepgramManager {
   let ws: WebSocket | null = null;
 
-  function connect() {
-    const url =
-      "wss://api.deepgram.com/v2/listen?model=flux-general-en&encoding=linear16&sample_rate=16000&eot_threshold=0.7&eot_timeout_ms=5000";
+  function connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const url =
+        "wss://api.deepgram.com/v2/listen?model=flux-general-en&encoding=linear16&sample_rate=16000&eot_threshold=0.7&eot_timeout_ms=5000";
 
-    ws = new WebSocket(url, ["token", apiKey]);
-    ws.binaryType = "arraybuffer";
+      ws = new WebSocket(url, ["token", apiKey]);
+      ws.binaryType = "arraybuffer";
 
-    ws.onopen = () => {
-      console.log("[Deepgram] Connected");
-    };
+      ws.onopen = () => {
+        console.log("[Deepgram] Connected");
+        resolve();
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "TurnInfo") {
-          onTranscript(data as DeepgramEvent);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "TurnInfo") {
+            onTranscript(data as DeepgramEvent);
+          }
+        } catch (e) {
+          console.error("[Deepgram] Parse error:", e);
         }
-      } catch (e) {
-        console.error("[Deepgram] Parse error:", e);
-      }
-    };
+      };
 
-    ws.onerror = (event) => {
-      console.error("[Deepgram] WebSocket error:", event);
-      onError("Deepgram connection error. Check your API key.");
-    };
+      ws.onerror = (event) => {
+        console.error("[Deepgram] WebSocket error:", event);
+        onError("Deepgram connection error. Check your API key.");
+        reject(new Error("Deepgram connection failed"));
+      };
 
-    ws.onclose = () => {
-      console.log("[Deepgram] Disconnected");
-      onClose();
-    };
+      ws.onclose = () => {
+        console.log("[Deepgram] Disconnected");
+        onClose();
+      };
+    });
   }
 
   function sendAudio(data: ArrayBuffer) {

@@ -83,7 +83,7 @@ export function VoiceAgent() {
       </div>
 
       {/* Wave visualizer */}
-      <div className="flex flex-col items-center gap-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 pb-32">
         <WaveVisualizer
           state={state}
           getCaptureAnalyser={getCaptureAnalyser}
@@ -91,22 +91,14 @@ export function VoiceAgent() {
         />
 
         {/* Transcript / Agent text */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={state + transcript + agentText}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            className="h-16 max-w-md px-4 text-center"
-          >
-            {state === "LISTENING" && transcript && (
-              <p className="text-sm text-neutral-300">{transcript}</p>
-            )}
-            {(state === "SPEAKING" || state === "IDLE") && agentText && (
-              <p className="text-sm text-neutral-400">{agentText}</p>
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div className="h-12 max-w-md px-4 text-center">
+          {state === "LISTENING" && transcript && (
+            <p className="text-sm text-neutral-300">{transcript}</p>
+          )}
+          {(state === "SPEAKING" || state === "IDLE") && agentText && (
+            <p className="text-sm text-neutral-400">{agentText}</p>
+          )}
+        </div>
 
         {/* Status text */}
         <p className={`text-sm font-medium ${getStatusColor(state)}`}>
@@ -120,7 +112,7 @@ export function VoiceAgent() {
       </div>
 
       {/* Mic button */}
-      <div className="absolute bottom-12 flex items-center justify-center">
+      <div className="absolute bottom-10 left-0 right-0 flex items-center justify-center">
         <button
           onClick={toggleMic}
           disabled={state === "PROCESSING"}
@@ -133,9 +125,9 @@ export function VoiceAgent() {
           }`}
         >
           {isMicActive ? (
-            <MicOff className="h-6 w-6 text-white" />
+            <Mic className="h-6 w-6 text-white" />
           ) : (
-            <Mic className="h-6 w-6 text-neutral-200" />
+            <MicOff className="h-6 w-6 text-neutral-200" />
           )}
           {isMicActive && (
             <span className="absolute inset-0 animate-ping rounded-full bg-blue-600 opacity-20" />
