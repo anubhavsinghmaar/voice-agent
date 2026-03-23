@@ -1,5 +1,5 @@
 export interface CartesiaManager {
-  connect: () => void;
+  connect: () => Promise<void>;
   speak: (text: string) => void;
   stop: () => void;
   close: () => void;
@@ -16,50 +16,57 @@ export function createCartesiaManager(
   let ws: WebSocket | null = null;
   let contextCounter = 0;
 
-  function connect() {
-    const url = `wss://api.cartesia.ai/tts/websocket?api_key=${apiKey}&cartesia_version=2025-04-16`;
+  function connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const url = `wss://api.cartesia.ai/tts/websocket?api_key=${apiKey}&cartesia_version=2025-04-16`;
 
-    ws = new WebSocket(url);
+      ws = new WebSocket(url);
 
-    ws.onopen = () => {
-      console.log("[Cartesia] Connected");
-    };
+      ws.onopen = () => {
+        console.log("[Cartesia] Connected");
+        resolve();
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("[Cartesia] Message type:", data.type, "status:", data.status_code);
 
-        if (data.type === "chunk" && data.data) {
-          const binaryStr = atob(data.data);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
+          if (data.type === "chunk" && data.data) {
+            const binaryStr = atob(data.data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const float32 = new Float32Array(bytes.buffer as ArrayBuffer);
+            onAudioChunk(float32);
+          } else if (data.type === "done") {
+            onDone();
+          } else if (data.error) {
+            console.error("[Cartesia] Error:", data.error);
+            onError(data.error);
           }
-          const float32 = new Float32Array(bytes.buffer as ArrayBuffer);
-          onAudioChunk(float32);
-        } else if (data.type === "done") {
-          onDone();
-        } else if (data.error) {
-          onError(data.error);
+        } catch (e) {
+          console.error("[Cartesia] Parse error:", e);
         }
-      } catch (e) {
-        console.error("[Cartesia] Parse error:", e);
-      }
-    };
+      };
 
-    ws.onerror = (event) => {
-      console.error("[Cartesia] WebSocket error:", event);
-      onError("Cartesia connection error. Check your API key.");
-    };
+      ws.onerror = () => {
+        console.error("[Cartesia] WebSocket error");
+        onError("Cartesia connection error. Check your API key.");
+        reject(new Error("Cartesia connection failed"));
+      };
 
-    ws.onclose = () => {
-      console.log("[Cartesia] Disconnected");
-      onClose();
-    };
+      ws.onclose = () => {
+        console.log("[Cartesia] Disconnected");
+        onClose();
+      };
+    });
   }
 
   function speak(text: string) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.error("[Cartesia] Not connected, cannot speak");
       onError("Cartesia WebSocket is not connected.");
       return;
     }
@@ -85,15 +92,15 @@ export function createCartesiaManager(
       continue: false,
     };
 
+    console.log("[Cartesia] Sending TTS request for:", text.slice(0, 50));
     ws.send(JSON.stringify(request));
   }
 
   function stop() {
-    // Reconnect to cancel any in-progress generation
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (ws) {
       ws.close();
+      ws = null;
     }
-    connect();
   }
 
   function close() {

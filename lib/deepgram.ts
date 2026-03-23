@@ -1,7 +1,12 @@
 export type DeepgramEvent =
   | { type: "TurnInfo"; event: "StartOfTurn"; transcript: string }
   | { type: "TurnInfo"; event: "Update"; transcript: string }
-  | { type: "TurnInfo"; event: "EndOfTurn"; transcript: string; end_of_turn_confidence: number }
+  | {
+      type: "TurnInfo";
+      event: "EndOfTurn";
+      transcript: string;
+      end_of_turn_confidence: number;
+    }
   | { type: "TurnInfo"; event: "EagerEndOfTurn"; transcript: string };
 
 export interface DeepgramManager {
@@ -32,25 +37,36 @@ export function createDeepgramManager(
         resolve();
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = (msgEvent) => {
+        if (typeof msgEvent.data !== "string") {
+          // Binary message, ignore
+          return;
+        }
         try {
-          const data = JSON.parse(event.data);
+          const data = JSON.parse(msgEvent.data);
+          console.log("[Deepgram] Message:", data.type, data.event || "", data.transcript || "");
+
           if (data.type === "TurnInfo") {
             onTranscript(data as DeepgramEvent);
           }
         } catch (e) {
-          console.error("[Deepgram] Parse error:", e);
+          console.error("[Deepgram] Parse error:", e, "Raw:", msgEvent.data);
         }
       };
 
-      ws.onerror = (event) => {
-        console.error("[Deepgram] WebSocket error:", event);
+      ws.onerror = () => {
+        console.error("[Deepgram] WebSocket error");
         onError("Deepgram connection error. Check your API key.");
         reject(new Error("Deepgram connection failed"));
       };
 
-      ws.onclose = () => {
-        console.log("[Deepgram] Disconnected");
+      ws.onclose = (closeEvent) => {
+        console.log(
+          "[Deepgram] Disconnected, code:",
+          closeEvent.code,
+          "reason:",
+          closeEvent.reason
+        );
         onClose();
       };
     });
@@ -63,15 +79,17 @@ export function createDeepgramManager(
   }
 
   function close() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(JSON.stringify({ type: "CloseStream" }));
-      } catch {
-        // ignore
+    if (ws) {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify({ type: "CloseStream" }));
+        } catch {
+          // ignore
+        }
       }
       ws.close();
+      ws = null;
     }
-    ws = null;
   }
 
   function isConnected() {
