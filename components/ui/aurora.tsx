@@ -129,8 +129,8 @@ export default function Aurora({
   const ctnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctn = ctnRef.current;
-    if (!ctn) return;
+    if (!ctnRef.current) return;
+    const ctn: HTMLDivElement = ctnRef.current;
 
     let animateId = 0;
     let cancelled = false;
@@ -181,7 +181,7 @@ export default function Aurora({
           uTime: { value: 0 },
           uAmplitude: { value: propsRef.current.amplitude },
           uColorStops: { value: colorStopsArray },
-          uResolution: { value: [ctn!.offsetWidth, ctn!.offsetHeight] },
+          uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
           uBlend: { value: propsRef.current.blend },
         },
       });
