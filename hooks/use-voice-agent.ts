@@ -20,8 +20,8 @@ export function useVoiceAgent() {
   const deepgramRef = useRef<DeepgramManager | null>(null);
   const cartesiaRef = useRef<CartesiaManager | null>(null);
   const initializedRef = useRef(false);
+  const audioBufferQueue = useRef<ArrayBuffer[]>([]);
 
-  // Keep stateRef in sync
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -44,24 +44,21 @@ export function useVoiceAgent() {
     initGemini(keys.gemini);
     audioPlayback.init();
     initializedRef.current = true;
-    console.log("[VoiceAgent] Services initialized");
   }, [audioPlayback]);
 
   const processAndSpeak = useCallback(
     async (finalTranscript: string) => {
       setState("PROCESSING");
-      console.log("[VoiceAgent] Processing transcript:", finalTranscript);
+      console.log("[VoiceAgent] Processing:", finalTranscript);
 
       try {
         const response = await generateResponse(finalTranscript);
         console.log("[VoiceAgent] Gemini response:", response);
         setAgentText(response);
 
-        // Connect Cartesia fresh for each utterance
         const keys = getApiKeys();
         if (!keys) throw new Error("No API keys");
 
-        // Close old connection if any
         cartesiaRef.current?.close();
 
         cartesiaRef.current = createCartesiaManager(
@@ -87,7 +84,7 @@ export function useVoiceAgent() {
         console.log("[VoiceAgent] Cartesia connected, speaking...");
 
         setState("SPEAKING");
-        audioPlayback.init(); // Ensure AudioContext is active
+        audioPlayback.init();
         cartesiaRef.current.speak(response);
       } catch (err) {
         console.error("[VoiceAgent] Process/speak error:", err);
@@ -111,24 +108,42 @@ export function useVoiceAgent() {
         initServices();
       }
 
-      // If speaking, interrupt
       if (stateRef.current === "SPEAKING") {
         audioPlayback.stopPlayback();
         cartesiaRef.current?.stop();
       }
 
-      // Clean up previous Deepgram connection
       if (deepgramRef.current) {
         deepgramRef.current.close();
         deepgramRef.current = null;
       }
 
       setTranscript("");
+      audioBufferQueue.current = [];
 
+      // Step 1: Start microphone FIRST so audio is flowing
+      console.log("[VoiceAgent] Starting audio capture first...");
+      await audioCapture.start((pcm16) => {
+        // If Deepgram is connected, send directly. Otherwise buffer.
+        if (deepgramRef.current?.isConnected()) {
+          deepgramRef.current.sendAudio(pcm16);
+        } else {
+          audioBufferQueue.current.push(pcm16);
+        }
+      });
+      console.log("[VoiceAgent] Audio capture running");
+
+      // Step 2: Now connect to Deepgram (audio is already buffering)
+      console.log("[VoiceAgent] Connecting to Deepgram...");
       deepgramRef.current = createDeepgramManager(
         keys.deepgram,
         (event) => {
-          console.log("[VoiceAgent] Deepgram event:", event.event, event.transcript);
+          console.log(
+            "[VoiceAgent] Deepgram event:",
+            event.event,
+            "transcript:",
+            event.transcript?.slice(0, 50)
+          );
 
           if (event.event === "Update" || event.event === "StartOfTurn") {
             setTranscript(event.transcript);
@@ -136,7 +151,6 @@ export function useVoiceAgent() {
             setTranscript(event.transcript);
             const text = event.transcript;
 
-            // Stop listening first
             audioCapture.stop();
             deepgramRef.current?.close();
             deepgramRef.current = null;
@@ -146,13 +160,13 @@ export function useVoiceAgent() {
               return;
             }
 
-            // Fire and forget the async processing (errors handled inside)
             processAndSpeak(text);
           }
         },
         (err) => {
           console.error("[VoiceAgent] Deepgram error:", err);
           setError(err);
+          audioCapture.stop();
           setState("IDLE");
         },
         () => {
@@ -160,25 +174,29 @@ export function useVoiceAgent() {
         }
       );
 
-      console.log("[VoiceAgent] Connecting to Deepgram...");
       await deepgramRef.current.connect();
-      console.log("[VoiceAgent] Deepgram connected, starting audio capture...");
+      console.log("[VoiceAgent] Deepgram connected");
 
-      await audioCapture.start((pcm16) => {
-        deepgramRef.current?.sendAudio(pcm16);
-      });
+      // Step 3: Flush buffered audio immediately
+      const buffered = audioBufferQueue.current;
+      console.log("[VoiceAgent] Flushing", buffered.length, "buffered chunks");
+      for (const chunk of buffered) {
+        deepgramRef.current.sendAudio(chunk);
+      }
+      audioBufferQueue.current = [];
 
-      console.log("[VoiceAgent] Audio capture started");
       setState("LISTENING");
+      console.log("[VoiceAgent] Now listening");
     } catch (err) {
       console.error("[VoiceAgent] Start error:", err);
+      audioCapture.stop();
       if (err instanceof DOMException && err.name === "NotAllowedError") {
         setError(
           "Microphone access denied. Please allow microphone access in your browser settings."
         );
       } else {
         setError(
-          "Failed to start listening. Please try again. " +
+          "Failed to start listening. " +
             (err instanceof Error ? err.message : "")
         );
       }
@@ -195,7 +213,7 @@ export function useVoiceAgent() {
 
   const toggleMic = useCallback(() => {
     const current = stateRef.current;
-    console.log("[VoiceAgent] toggleMic, current state:", current);
+    console.log("[VoiceAgent] toggleMic, state:", current);
 
     if (current === "IDLE") {
       startListening();
@@ -206,7 +224,6 @@ export function useVoiceAgent() {
     }
   }, [startListening, stopListening]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       audioCapture.stop();

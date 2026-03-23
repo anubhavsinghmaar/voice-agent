@@ -21,15 +21,17 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: 16000,
           echoCancellation: true,
           noiseSuppression: true,
         },
       });
       streamRef.current = stream;
 
-      const audioContext = new AudioContext({ sampleRate: 16000 });
+      // Use default sample rate and downsample to 16kHz manually
+      const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
+      const nativeSampleRate = audioContext.sampleRate;
+      console.log("[AudioCapture] Native sample rate:", nativeSampleRate);
 
       const source = audioContext.createMediaStreamSource(stream);
       sourceRef.current = source;
@@ -39,19 +41,34 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       analyserRef.current = analyser;
       source.connect(analyser);
 
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      // Use smaller buffer for lower latency
+      const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
         const channelData = e.inputBuffer.getChannelData(0);
-        const float32Copy = new Float32Array(channelData.length);
-        float32Copy.set(channelData);
-        const int16 = float32ToInt16(float32Copy);
+
+        // Downsample to 16kHz if needed
+        let samples: Float32Array;
+        if (nativeSampleRate === 16000) {
+          samples = new Float32Array(channelData.length);
+          samples.set(channelData);
+        } else {
+          const ratio = nativeSampleRate / 16000;
+          const newLength = Math.floor(channelData.length / ratio);
+          samples = new Float32Array(newLength);
+          for (let i = 0; i < newLength; i++) {
+            samples[i] = channelData[Math.floor(i * ratio)];
+          }
+        }
+
+        const int16 = float32ToInt16(samples);
         onChunk(int16.buffer as ArrayBuffer);
       };
 
       source.connect(processor);
       processor.connect(audioContext.destination);
+      console.log("[AudioCapture] Started, sending PCM16 at 16kHz");
     },
     []
   );
@@ -71,6 +88,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
 
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    console.log("[AudioCapture] Stopped");
   }, []);
 
   const getAnalyserNode = useCallback(() => analyserRef.current, []);
