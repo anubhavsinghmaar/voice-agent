@@ -49,7 +49,7 @@ export function Hero() {
         {/* Spline 3D scene — shifted LEFT */}
         <div
           className="absolute inset-0 z-[1]"
-          style={{ left: "-5%", transform: "scale(0.82)", transformOrigin: "center center" }}
+          style={{ left: "8%", transform: "scale(0.82)", transformOrigin: "center center" }}
         >
           <SplineScene
             scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
@@ -70,54 +70,16 @@ export function Hero() {
                 Your{" "}
               </span>
 
-              {/* Inline "Personal" with upward arrow pointing to it */}
-              <span className="relative inline-block mx-1 align-baseline">
-                {/* Arrow — positioned above "Personal", pointing down toward it */}
-                <motion.svg
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
-                  width="50"
-                  height="36"
-                  viewBox="0 0 50 36"
-                  fill="none"
-                  className="absolute -top-9 left-1/2 -translate-x-1/2 md:-top-11"
-                >
-                  {/* Curved arrow line pointing downward */}
-                  <path
-                    d="M25 2 C22 10, 18 18, 24 32"
-                    stroke="url(#arrowGrad)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  {/* Arrowhead at bottom */}
-                  <path
-                    d="M19 27 L24 34 L29 27"
-                    stroke="url(#arrowGrad)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
-                  <defs>
-                    <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#66c4ff" />
-                      <stop offset="100%" stopColor="#B19EEF" />
-                    </linearGradient>
-                  </defs>
-                </motion.svg>
-
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
-                  animate={{ opacity: 1, scale: 1, rotate: -2 }}
-                  transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
-                  className="bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent text-4xl md:text-6xl lg:text-7xl"
-                  style={{ fontFamily: "var(--font-caveat), cursive" }}
-                >
-                  Personal
-                </motion.span>
-              </span>
+              {/* Inline "Personal" — handwritten style, no arrow */}
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                animate={{ opacity: 1, scale: 1, rotate: -2 }}
+                transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+                className="inline-block bg-gradient-to-r from-[#66c4ff] via-[#B19EEF] to-[#626fd0] bg-clip-text text-transparent text-4xl md:text-6xl lg:text-7xl px-1"
+                style={{ fontFamily: "var(--font-caveat), cursive" }}
+              >
+                Personal
+              </motion.span>
 
               <span className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent">
                 {" "}AI Voice
@@ -141,20 +103,20 @@ export function Hero() {
             recognition, language understanding, and voice synthesis.
           </motion.p>
 
-          {/* Get Started button with ShapeBlur effect */}
+          {/* Get Started button with ShapeBlur effect as full background */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-            className="mt-8"
+            className="mt-8 pointer-events-auto"
           >
-            <button
+            <div
+              className="group relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105 hover:shadow-[0_0_60px_rgba(177,158,239,0.2)]"
+              style={{ width: 220, height: 64 }}
               onClick={handleGetStarted}
-              className="pointer-events-auto group relative overflow-hidden rounded-xl border border-white/[0.15] bg-white/[0.04] px-8 py-3 text-base font-semibold text-white transition-all duration-500 hover:scale-105 hover:border-white/[0.25] hover:shadow-[0_0_40px_rgba(177,158,239,0.15)]"
-              style={{ minWidth: 180, minHeight: 52 }}
             >
-              {/* ShapeBlur shader overlay */}
-              <div className="absolute inset-0 z-0 opacity-40 group-hover:opacity-70 transition-opacity duration-500">
+              {/* ShapeBlur fills the entire box */}
+              <div className="absolute inset-0 z-0">
                 <Suspense fallback={null}>
                   <ShapeBlur
                     variation={0}
@@ -167,8 +129,13 @@ export function Hero() {
                   />
                 </Suspense>
               </div>
-              <span className="relative z-10">Get Started</span>
-            </button>
+              {/* Text centered on top */}
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <span className="text-base font-semibold text-white drop-shadow-lg">
+                  Get Started
+                </span>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
